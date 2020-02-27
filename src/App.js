@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import logo from './logo.svg';
+import loadingGif from './loadingCircles.gif';
 import './App.css';
 
 
@@ -12,7 +12,6 @@ function App() {
   const mVae = require('@magenta/music/node/music_vae');
   const mRnn = require('@magenta/music/node/music_rnn');
   const mm = require('@magenta/music/node/core');
-  var midime;
 
   // These hacks below are needed because the library uses performance and fetch which
   // exist in browsers but not in node. We are working on simplifying this!
@@ -74,9 +73,9 @@ function App() {
   };
 
   /////////////////////////////////////////////////////////////////////////////////////////
-  var midime;
-  var currentMel;
-  var training = {};
+  // var midime;
+  // var currentMel;
+  // var training = {};
 
   var player = new mm.Player();
   var viz;
@@ -86,6 +85,12 @@ function App() {
   };
   player.resumeContext();
 
+  const [loading, setLoading] = useState(false);
+  
+  const [midime, setMidime] = useState(null);
+  const [currentMel, setCurrentMel] = useState(null);
+  const [training, setTraining] = useState({});
+
   // useEffect(() => {
   //   console.log("use effect")
   //   viz = new mm.PianoRollCanvasVisualizer(TWINKLE_TWINKLE, document.getElementById('canvas'));
@@ -94,6 +99,12 @@ function App() {
   //     stop: () => {console.log('done');}
   //   };
   // },[]);
+
+  useEffect(() => {
+    if (midime != undefined && midime != null) {
+      midime.initialize();
+    }
+  }, [midime])
 
   var rnn_steps = 30;
   var rnn_temperature = 1.2;
@@ -111,9 +122,10 @@ function App() {
   }
 
   function loopMelody(mel) {
+    updateVis(mel)
     player.start(mel).then(() => {
       if (!player.isPlaying()) {
-        
+        updateVis(mel)
         loopMelody(mel);
       } else {
         player.stop();
@@ -168,9 +180,9 @@ function App() {
 
   // Loads an example if you don't have a file.
   async function loadSample() {
-    
-    midime = new mVae.MidiMe({epochs: 100});
-    midime.initialize();
+    setLoading(true);
+    setMidime(new mVae.MidiMe({epochs: 100}));
+
     
     const url = 'https://cdn.glitch.com/d18fef17-09a1-41f5-a5ff-63a80674b090%2Fmel_input.mid?v=1564186536933';
     //const url = 'https://cdn.glitch.com/d18fef17-09a1-41f5-a5ff-63a80674b090%2Fchpn_op10_e01_format0.mid?1556142864200';
@@ -187,9 +199,11 @@ function App() {
 
 
     updateVis(mel);
-    currentMel = mel;
-    console.log(currentMel)
+    setCurrentMel(mel);
+    console.log(mel)
 
+    console.log(midime)
+    setLoading(false);
     // loopMelody(mel);
 
     function getChunks(qnsMel) {
@@ -207,15 +221,23 @@ function App() {
 
   // Train the model!!
   async function train() {
+        
+
+    setLoading(true);
+    console.log("training")
     stopPlayer();
+
+    console.log(midime)
     
-    currentMel = null;
+    setCurrentMel(null);
     var totalSteps = midime.config.epochs = trainingSteps;
     
     const losses = [];
 
+    console.log(training.z)
+
     await midime.train(training.z, async (epoch, logs) => {
-      await mm.tf.nextFrame();
+      // await mm.tf.nextFrame();
       trainingSteps = epoch + 1;
       losses.push(logs.total);
       // plotLoss(losses);
@@ -236,8 +258,9 @@ function App() {
     const z_ = z[0].arraySync()[0];
     s.dispose();
 
-    currentMel = mel;
+    setCurrentMel(mel);
 
+    setLoading(false);
 
   }
 
@@ -246,13 +269,17 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        {/* <img src={logo} className="App-logo" alt="logo" /> */}
+        {loading ? <img src={loadingGif} className="App-logo" alt="logo" /> : <div></div>}
+        
         <svg id="vizInput"></svg>
         
         <button onClick={playTwinkle}><h1>Play Twinkle Twinkle</h1></button>
         <button onClick={play}><h1>Play</h1></button>
         <button onClick={loadSample}><h1>Load Sample</h1></button>
         <button onClick={train}><h1>Train</h1></button>
+        {JSON.stringify(midime)}
+        {JSON.stringify("HELOLo")}
+        {JSON.stringify(midime == null || midime == undefined)}
       </header>
     </div>
   );
