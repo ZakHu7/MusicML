@@ -106,6 +106,13 @@ function App() {
     }
   }, [midime])
 
+  useEffect(() => {
+    if (currentMel != undefined && currentMel != null) {
+      updateVis(currentMel)
+    }
+  }, [currentMel])
+
+
   var rnn_steps = 30;
   var rnn_temperature = 1.2;
   var trainingSteps = 100;
@@ -122,10 +129,10 @@ function App() {
   }
 
   function loopMelody(mel) {
-    updateVis(mel)
+    // updateVis(mel)
     player.start(mel).then(() => {
       if (!player.isPlaying()) {
-        updateVis(mel)
+        setCurrentMel(mel)
         loopMelody(mel);
       } else {
         player.stop();
@@ -148,7 +155,8 @@ function App() {
 
   async function playTwinkle() {
     const qns = mm.sequences.quantizeNoteSequence(TWINKLE_TWINKLE, 4);
-    loopMelodyStep(qns);
+    setCurrentMel(qns)
+    // loopMelodyStep(qns);
     // const sample = await musicRnn.continueSequence(qns, rnn_steps, rnn_temperature);
 
     // updateVis(sample)
@@ -273,7 +281,7 @@ function App() {
         
         <svg id="vizInput"></svg>
         
-        <button onClick={playTwinkle}><h1>Play Twinkle Twinkle</h1></button>
+        <button onClick={playTwinkle}><h1>Set Twinkle Twinkle</h1></button>
         <button onClick={play}><h1>Play</h1></button>
         <button onClick={loadSample}><h1>Load Sample</h1></button>
         <button onClick={train}><h1>Train</h1></button>
